@@ -1,6 +1,7 @@
 package credits
 
 import (
+	"fmt"
 	"testing"
 	"time"
 )
@@ -20,6 +21,8 @@ import (
 				score++
 			}
 		}
+
+		fmt.Println(start, time.Now())
 
 		if score != 10 {
 

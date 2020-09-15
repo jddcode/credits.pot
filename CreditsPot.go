@@ -8,7 +8,7 @@ import (
 
 	func NewCreditsPot(config CreditsPotConfig) CreditsPot {
 
-		pot := creditsPot{}
+		pot := creditsPot{ credits: make([]time.Time, 0) }
 
 		// Sort out the config
 		if config.Burst < 1 {
@@ -22,7 +22,6 @@ import (
 		}
 
 		pot.config = config
-		go pot.caretaker()
 		return &pot
 	}
 
@@ -34,8 +33,9 @@ import (
 	type creditsPot struct {
 
 		lock sync.RWMutex
-		credits int
+		credits []time.Time
 		config CreditsPotConfig
+		nextExpiry time.Time
 	}
 
 	func (cp *creditsPot) Work() error {
@@ -43,32 +43,35 @@ import (
 		cp.lock.Lock()
 		defer cp.lock.Unlock()
 
-		if cp.credits >= cp.config.Burst {
+		newCredits := make([]time.Time, 0)
+		for _, credit := range cp.credits {
+
+			if time.Now().Format("05") == credit.Format("05") || time.Now().After(credit) {
+
+				continue
+			}
+
+			newCredits = append(newCredits, credit)
+		}
+
+		cp.credits = newCredits
+
+		if len(cp.credits) >= cp.config.Burst {
 
 			return errors.New("over_limit")
 		}
 
-		cp.credits++
-		return nil
-	}
+		if cp.nextExpiry.IsZero() {
 
-	func (cp *creditsPot) caretaker() {
+			cp.nextExpiry = time.Now().Add(time.Second * time.Duration(cp.config.DecrementSeconds))
 
-		for {
+		} else {
 
-			cp.lock.RLock()
-			amount := cp.credits
-			cp.lock.RUnlock()
-
-			if amount > 0 {
-
-				cp.lock.Lock()
-				cp.credits--
-				cp.lock.Unlock()
-			}
-
-			time.Sleep(time.Second * time.Duration(cp.config.DecrementSeconds))
+			cp.nextExpiry = cp.nextExpiry.Add(time.Second * time.Duration(cp.config.DecrementSeconds))
 		}
+
+		cp.credits = append(cp.credits, cp.nextExpiry)
+		return nil
 	}
 
 	type CreditsPotConfig struct {
