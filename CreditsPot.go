@@ -48,6 +48,8 @@ import (
 
 				return
 			}
+
+			time.Sleep(time.Millisecond * 500)
 		}
 	}
 
