@@ -11,14 +11,14 @@ import (
 		pot := creditsPot{ credits: make([]time.Time, 0) }
 
 		// Sort out the config
-		if config.Burst < 1 {
+		if config.Size < 1 {
 
-			config.Burst = 1
+			config.Size = 1
 		}
 
-		if config.DecrementSeconds < 1 {
+		if config.DripSeconds < 1 {
 
-			config.DecrementSeconds = 1
+			config.DripSeconds = 1
 		}
 
 		pot.config = config
@@ -27,7 +27,7 @@ import (
 
 	type CreditsPot interface {
 
-		Work() error
+		Work()
 	}
 
 	type creditsPot struct {
@@ -38,7 +38,20 @@ import (
 		nextExpiry time.Time
 	}
 
-	func (cp *creditsPot) Work() error {
+	func (cp *creditsPot) Work() {
+
+		for {
+
+			err := cp.iterate()
+
+			if err == nil {
+
+				return
+			}
+		}
+	}
+
+	func (cp *creditsPot) iterate() error {
 
 		cp.lock.Lock()
 		defer cp.lock.Unlock()
@@ -46,7 +59,7 @@ import (
 		newCredits := make([]time.Time, 0)
 		for _, credit := range cp.credits {
 
-			if time.Now().Format("05") == credit.Format("05") || time.Now().After(credit) {
+			if time.Now().After(credit) {
 
 				continue
 			}
@@ -56,18 +69,19 @@ import (
 
 		cp.credits = newCredits
 
-		if len(cp.credits) >= cp.config.Burst {
+		if len(cp.credits) >= cp.config.Size {
 
 			return errors.New("over_limit")
 		}
 
-		if cp.nextExpiry.IsZero() {
+		// If we don't have a next expiry yet or it's ages in the past because we haven't used the pot in a while, reset the nextExpiry
+		if cp.nextExpiry.IsZero() || cp.nextExpiry.Add(time.Second).Before(time.Now().Add(time.Second * time.Duration(cp.config.DripSeconds))) {
 
-			cp.nextExpiry = time.Now().Add(time.Second * time.Duration(cp.config.DecrementSeconds))
+			cp.nextExpiry = time.Now().Add(time.Second * time.Duration(cp.config.DripSeconds))
 
 		} else {
 
-			cp.nextExpiry = cp.nextExpiry.Add(time.Second * time.Duration(cp.config.DecrementSeconds))
+			cp.nextExpiry = cp.nextExpiry.Add(time.Second * time.Duration(cp.config.DripSeconds))
 		}
 
 		cp.credits = append(cp.credits, cp.nextExpiry)
@@ -76,6 +90,6 @@ import (
 
 	type CreditsPotConfig struct {
 
-		Burst int
-		DecrementSeconds int
+		Size int
+		DripSeconds int
 	}
