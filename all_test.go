@@ -14,7 +14,12 @@ import (
 		score := 0
 		for time.Now().Before(start.Add(time.Second * 10)) {
 
-			myPot.Work()
+			if !myPot.Work() {
+
+				t.Error("Test aborted")
+				return
+			}
+
 			score++
 		}
 

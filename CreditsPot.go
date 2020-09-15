@@ -2,7 +2,10 @@ package credits
 
 import (
 	"errors"
+	"os"
+	"os/signal"
 	"sync"
+	"syscall"
 	"time"
 )
 
@@ -27,7 +30,7 @@ import (
 
 	type CreditsPot interface {
 
-		Work()
+		Work() bool
 	}
 
 	type creditsPot struct {
@@ -38,7 +41,11 @@ import (
 		nextExpiry time.Time
 	}
 
-	func (cp *creditsPot) Work() {
+	func (cp *creditsPot) Work() bool {
+
+		// Stop on unix kill signal
+		signalChannel := make(chan os.Signal, 1)
+		signal.Notify(signalChannel, syscall.SIGINT, syscall.SIGTERM)
 
 		for {
 
@@ -46,7 +53,16 @@ import (
 
 			if err == nil {
 
-				return
+				return true
+			}
+
+			select {
+
+				case <- signalChannel:
+
+					return false
+
+				default:
 			}
 
 			time.Sleep(time.Millisecond * 500)
