@@ -7,11 +7,11 @@ import (
 
 	func TestRestrictions(t *testing.T) {
 
-		myPot := NewCreditsPot()
+		myPot := NewCreditsPot(CreditsPotConfig{ Burst: 5, DecrementSeconds: 2 })
 
 		start := time.Now()
 		score := 0
-		for time.Now().Before(start.Add(time.Second * 2)) {
+		for time.Now().Before(start.Add(time.Second * 10)) {
 
 			err := myPot.Work()
 
@@ -21,8 +21,8 @@ import (
 			}
 		}
 
-		if score != 3 {
+		if score != 10 {
 
-			t.Error("Completed", score, "units of work. Should only be able to complete three")
+			t.Error("Completed", score, "units of work. Should only be able to complete ten")
 		}
 	}

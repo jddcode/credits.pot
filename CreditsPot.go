@@ -6,9 +6,22 @@ import (
 	"time"
 )
 
-	func NewCreditsPot() CreditsPot {
+	func NewCreditsPot(config CreditsPotConfig) CreditsPot {
 
 		pot := creditsPot{}
+
+		// Sort out the config
+		if config.Burst < 1 {
+
+			config.Burst = 1
+		}
+
+		if config.DecrementSeconds < 1 {
+
+			config.DecrementSeconds = 1
+		}
+
+		pot.config = config
 		go pot.caretaker()
 		return &pot
 	}
@@ -22,6 +35,7 @@ import (
 
 		lock sync.RWMutex
 		credits int
+		config CreditsPotConfig
 	}
 
 	func (cp *creditsPot) Work() error {
@@ -29,7 +43,7 @@ import (
 		cp.lock.Lock()
 		defer cp.lock.Unlock()
 
-		if cp.credits > 0 {
+		if cp.credits >= cp.config.Burst {
 
 			return errors.New("over_limit")
 		}
@@ -53,6 +67,12 @@ import (
 				cp.lock.Unlock()
 			}
 
-			time.Sleep(time.Second)
+			time.Sleep(time.Second * time.Duration(cp.config.DecrementSeconds))
 		}
+	}
+
+	type CreditsPotConfig struct {
+
+		Burst int
+		DecrementSeconds int
 	}
