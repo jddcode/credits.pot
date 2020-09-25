@@ -30,6 +30,12 @@ func main() {
 }
 ```
 
+## Future Plans
+
+In future I might add an optional extra parameter to the `CreditsPotConfig` allowing a `time.Duration` to be specified
+instead of a number of seconds - this would allow much more fine grained credits replenishment, tapping into the `time`
+libraries' availability of micro and even nanoseconds.
+
 ## Core Library Alternative
 
 There is a more comprehensive rate limiting package available in the `golang.org/x/time/rate` package, part of the
