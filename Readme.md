@@ -29,3 +29,8 @@ func main() {
     }    
 }
 ```
+
+## Core Library Alternative
+
+There is a more comprehensive rate limiting package available in the `golang.org/x/time/rate` package, part of the
+standard library. You can read the [documentation on that here](https://godoc.org/golang.org/x/time/rate).
