@@ -1,7 +1,6 @@
 package credits
 
 import (
-	"fmt"
 	"testing"
 	"time"
 )
@@ -17,8 +16,6 @@ import (
 			myPot.Work()
 			score++
 		}
-
-		fmt.Println(start, time.Now())
 
 		if score != 10 {
 
