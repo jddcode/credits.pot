@@ -21,7 +21,7 @@ for the remainder of the time.
 func main() {
 
     // Create a new pot with a capacity of five, and which drips out a unit every two seconds
-    pot := NewCreditsPot(CreditsPotConfig{ Size: 5, DripSeconds: 2 })
+    pot := NewCreditsPot(CreditsPotConfig{ Size: 5, DripTime: time.Second * 2 })
 
     // Complete a unit of work whenever possible - should be five initially and then one every two seconds
     counter := 0
@@ -32,12 +32,6 @@ func main() {
     }    
 }
 ```
-
-## Future Plans
-
-In future I might add an optional extra parameter to the `CreditsPotConfig` allowing a `time.Duration` to be specified
-instead of a number of seconds - this would allow much more fine grained credits replenishment, tapping into the `time`
-libraries' availability of micro and even nanoseconds.
 
 ## Core Library Alternative
 
