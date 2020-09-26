@@ -16,9 +16,9 @@ import (
 			config.Size = 1
 		}
 
-		if config.DripSeconds < 1 {
+		if config.DripTime.Nanoseconds() < 1 {
 
-			config.DripSeconds = 1
+			config.DripTime = time.Second
 		}
 
 		pot.config = config
@@ -53,6 +53,9 @@ import (
 		}
 	}
 
+	// This function does two things. Firstly it removes any credits which are expired, and then it checks to see if a new credit can be added.
+	// If a new credit cannot be added (pot is full) it returns an error and the parent Work() function continues to wait.
+	// If a new credit can be added, this is done - the new credit either has an expiry time of the configured expiry time after now, or that expiry time after the expiry time of the newest credit in the pot
 	func (cp *creditsPot) iterate() error {
 
 		cp.lock.Lock()
@@ -77,13 +80,13 @@ import (
 		}
 
 		// If we don't have a next expiry yet or it's ages in the past because we haven't used the pot in a while, reset the nextExpiry
-		if cp.nextExpiry.IsZero() || cp.nextExpiry.Add(time.Second).Before(time.Now().Add(time.Second * time.Duration(cp.config.DripSeconds))) {
+		if cp.nextExpiry.IsZero() || cp.nextExpiry.Add(cp.config.DripTime).Before(time.Now().Add(cp.config.DripTime)) {
 
-			cp.nextExpiry = time.Now().Add(time.Second * time.Duration(cp.config.DripSeconds))
+			cp.nextExpiry = time.Now().Add(cp.config.DripTime)
 
 		} else {
 
-			cp.nextExpiry = cp.nextExpiry.Add(time.Second * time.Duration(cp.config.DripSeconds))
+			cp.nextExpiry = cp.nextExpiry.Add(cp.config.DripTime)
 		}
 
 		cp.credits = append(cp.credits, cp.nextExpiry)
@@ -93,5 +96,5 @@ import (
 	type CreditsPotConfig struct {
 
 		Size int
-		DripSeconds int
+		DripTime time.Duration
 	}
