@@ -27,8 +27,8 @@ func main() {
     counter := 0
     for pot.Work() {
 
-        fmt.Println(counter, "work units completed")
         counter++
+        fmt.Println(counter, "work units completed")
     }    
 }
 ```
