@@ -7,7 +7,7 @@ import (
 
 	func TestRestrictions(t *testing.T) {
 
-		myPot := NewCreditsPot(CreditsPotConfig{ Size: 5, DripSeconds: 2 })
+		myPot := NewCreditsPot(CreditsPotConfig{ Size: 5, DripTime: time.Second * 2 })
 
 		start := time.Now()
 		score := 0
