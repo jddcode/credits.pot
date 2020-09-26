@@ -2,12 +2,15 @@
 
 ## Overview
 
-The Credits Pot is a rate limiting mechanism. To use, you set the size of your pot and the number of second between
-each drip of water from your pot.
+The Credits Pot is a thread safe rate limiting mechanism which can be shared across multiple goroutines.
 
-Example: Imagine you have a pot with a capacity of `ten` and a drip seconds value of `2`. You will initially be able
-to carry out work with no delay at all, until the pot is full and five units of work have been completed. Every two 
-seconds after that, a unit will drip out of the bucket and another unit of work can be completed.
+Imagine a pot of water. Each time you carry out a unit of work, you put a drop of water into your pot. When the pot
+is full, no more work can be carried out. The pot has a leak and over time, water will leak out, allowing more work to
+be completed.
+
+Imagine your pot has a capacity of five and drips every two seconds. Your first five units of work will be
+completed with no delay at all. After that your bucket will be full and work will pause. Every two seconds, a drop of
+water will leak from your bucket and another unit of work can be completed.
 
 Over the course of ten seconds, our example should process ten units of work; five initially and one every two seconds
 for the remainder of the time.
@@ -40,3 +43,5 @@ libraries' availability of micro and even nanoseconds.
 
 There is a more comprehensive rate limiting package available in the `golang.org/x/time/rate` package, part of the
 standard library. You can read the [documentation on that here](https://godoc.org/golang.org/x/time/rate).
+
+The core library has considerably greater flexibility and functionality than this one, but is also more complex.
