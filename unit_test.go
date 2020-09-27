@@ -5,20 +5,35 @@ import (
 	"time"
 )
 
+var pot CreditsPot
+var workerA int
+var workerB int
+
 	func TestRestrictions(t *testing.T) {
 
-		myPot := NewCreditsPot(CreditsPotConfig{ Size: 5, DripTime: time.Second * 2 })
+		pot = NewCreditsPot(CreditsPotConfig{ Size: 5, DripTime: time.Second * 2 })
 
-		start := time.Now()
-		score := 0
-		for time.Now().Before(start.Add(time.Second * 10)) {
+		end := time.Now().Add(time.Second * 10)
+		go worker(&workerA, end)
+		go worker(&workerB, end)
 
-			myPot.Work()
-			score++
+		for time.Now().Before(end.Add(time.Second)) {
+
+			time.Sleep(time.Second)
 		}
 
-		if score != 10 {
+		completedWork := workerA + workerB
+		if completedWork != 10 {
 
-			t.Error("Completed", score, "units of work. Should only be able to complete ten")
+			t.Error("Completed", completedWork, "units of work. Should only be able to complete ten")
+		}
+	}
+
+	func worker(workStack *int, end time.Time) {
+
+		for time.Now().Before(end) {
+
+			pot.Work()
+			*workStack++
 		}
 	}
