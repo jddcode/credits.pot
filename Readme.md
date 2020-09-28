@@ -25,7 +25,7 @@ func main() {
 
     // Complete a unit of work whenever possible - should be five initially and then one every two seconds
     counter := 0
-    for pot.Work() {
+    for pot.WaitFor(time.Second * 5) {
 
         counter++
         fmt.Println(counter, "work units completed")
@@ -52,11 +52,14 @@ func main() {
 func apiRequestHandler(...) {
 
     // This call ensures the request is only handled when your rate limiting pot says it is OK
-    pot.Work()
+    pot.WaitFor(time.Second * 5)
 
     // Handle API request
 }
 ```
+
+In the case of your API being flooded with traffic, requests will time out after five seconds if they are not able to 
+navigeate the queue by then.
 
 ## Core Library Alternative
 
