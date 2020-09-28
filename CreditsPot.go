@@ -1,6 +1,8 @@
 package credits
 
 import (
+	"context"
+	"errors"
 	"sync"
 	"time"
 )
@@ -26,7 +28,7 @@ import (
 
 	type CreditsPot interface {
 
-		Work()
+		WaitFor(waitTime time.Duration) error
 	}
 
 	type creditsPot struct {
@@ -34,24 +36,27 @@ import (
 		lock sync.RWMutex
 		credits []time.Time
 		queueLock sync.RWMutex
-		queue []chan interface{}
+		queue []struct{ RequestContext context.Context; ReadyToWork context.CancelFunc }
 		config CreditsPotConfig
 		nextExpiry time.Time
 	}
 
-	func (cp *creditsPot) Work() {
+	func (cp *creditsPot) WaitFor(waitTime time.Duration) error {
 
-		ticket := cp.joinQueue()
+		requestCtx, _ := context.WithTimeout(context.Background(), waitTime)
+		queueCtx := cp.joinQueue(requestCtx)
+
 		for {
 
 			select {
 
-				case _, open := <- ticket:
+				case <- queueCtx.Done():
 
-					if !open {
+					return nil
 
-						return
-					}
+				case <- requestCtx.Done():
+
+					return errors.New("request_timeout")
 
 				default:
 
@@ -61,14 +66,15 @@ import (
 		}
 	}
 
-	func (cp *creditsPot) joinQueue() chan interface{} {
+	func (cp *creditsPot) joinQueue(requestCtx context.Context) context.Context {
 
 		cp.queueLock.Lock()
 		defer cp.queueLock.Unlock()
 
-		ticket := make(chan interface{})
-		cp.queue = append(cp.queue, ticket)
-		return ticket
+		// This context is Done when the caller is authorised to work.
+		ctx, cancelFunc := context.WithCancel(context.Background())
+		cp.queue = append(cp.queue, struct{ RequestContext context.Context; ReadyToWork context.CancelFunc }{ RequestContext: requestCtx, ReadyToWork: cancelFunc })
+		return ctx
 	}
 
 	// This function does two things. Firstly it removes any credits which are expired, and then it checks to see if a new credit can be added.
@@ -110,24 +116,48 @@ import (
 		cp.credits = append(cp.credits, cp.nextExpiry)
 
 		// Notify the next in line they can do their work
-		cp.queueLock.Lock()
-		defer cp.queueLock.Unlock()
+		for {
 
-		if len(cp.queue) > 0 {
+			cp.queueLock.Lock()
+			if len(cp.queue) < 1 {
+
+				cp.queueLock.Unlock()
+				break
+			}
 
 			ticket := cp.queue[0]
 
 			if len(cp.queue) == 1 {
 
-				cp.queue = make([]chan interface{}, 0)
+				cp.queue = make([]struct{ RequestContext context.Context; ReadyToWork context.CancelFunc }, 0)
 
 			} else {
 
 				cp.queue = cp.queue[1:]
 			}
 
+			cp.queueLock.Unlock()
+
 			// The signal that it is your turn is your ticket queue being closed
-			close(ticket)
+			workDone := false
+			select {
+
+				case <- ticket.RequestContext.Done():
+
+					// This client has given up already. Move on
+					continue
+
+				default:
+
+					// We can authorise this client to do their work
+					ticket.ReadyToWork()
+					workDone = true
+			}
+
+			if workDone {
+
+				break
+			}
 		}
 
 		return

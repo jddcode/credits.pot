@@ -33,6 +33,31 @@ func main() {
 }
 ```
 
+## Thread Safe
+
+The credits pot is safe to use across multiple goroutines. One useful example of this would be limiting requests to a
+public API. Let's imagine you want to limit total requests to your API to one every two seconds, with an optional burst
+of up to five requests if things have been quiet. You would set that up like this:
+
+```
+var pot CreditsPot
+
+func main() {
+
+    pot = NewCreditsPot(CreditsPotConfig{ Size: 5, DripTime: time.Millisecond * 500 })
+
+    // start your server here
+}
+
+func apiRequestHandler(...) {
+
+    // This call ensures the request is only handled when your rate limiting pot says it is OK
+    pot.Work()
+
+    // Handle API request
+}
+```
+
 ## Core Library Alternative
 
 There is a more comprehensive rate limiting package available in the `golang.org/x/time/rate` package, part of the

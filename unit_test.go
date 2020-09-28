@@ -33,7 +33,39 @@ var workerB int
 
 		for time.Now().Before(end) {
 
-			pot.Work()
-			*workStack++
+			err := pot.WaitFor(time.Minute)
+
+			if err == nil {
+
+				*workStack++
+			}
+		}
+	}
+
+	func TestWorkTimeout(t *testing.T) {
+
+		// Create a very slow pot to test that requests time out correctly
+		pot = NewCreditsPot(CreditsPotConfig{ Size: 1, DripTime: time.Minute * 10 })
+
+		// Do one piece of work
+		err := pot.WaitFor(time.Minute)
+
+		if err != nil {
+
+			t.Error("First item into pot had an error but should have succeeded :", err.Error())
+			return
+		}
+
+		// Now this should time out
+		err = pot.WaitFor(time.Second)
+
+		if err == nil {
+
+			t.Error("Second item into pot had no error but it should have timed out")
+		}
+
+		if err.Error() != "request_timeout" {
+
+			t.Error("Second item into pot should have timed out it's request, but it gave a different error code :", err.Error())
 		}
 	}
