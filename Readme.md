@@ -25,7 +25,13 @@ func main() {
 
     // Complete a unit of work whenever possible - should be five initially and then one every two seconds
     counter := 0
-    for pot.WaitFor(time.Second * 5) {
+    for err := pot.WaitFor(time.Second * 5) {
+
+        if err != nil {
+
+            // Operation timed out while waiting to get to the front of the queue; try again later
+            continue
+        }
 
         counter++
         fmt.Println(counter, "work units completed")
@@ -52,7 +58,14 @@ func main() {
 func apiRequestHandler(...) {
 
     // This call ensures the request is only handled when your rate limiting pot says it is OK
-    pot.WaitFor(time.Second * 5)
+    err := pot.WaitFor(time.Second * 5)
+
+    if err != nil {
+
+        // Reply that this operation has timed out and could not be completed
+        // ...
+        return
+    }
 
     // Handle API request
 }
